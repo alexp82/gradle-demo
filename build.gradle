@@ -1,0 +1,67 @@
+project.description = 'Simple Project'
+
+defaultTasks 'simple'
+
+task simple << {
+	println 'Running simple task for project ' + project.description
+}
+
+def taskGroup = 'base'
+
+def printTaskName = { task ->
+	println "Run ${task.name}"
+}
+
+task first(description: 'First task description', group: taskGroup) << printTaskName
+
+task second << printTaskName
+
+second.dependsOn = ['first']
+second.description = 'Second task description'
+second.group = taskGroup
+second.dependsOn {
+	project.tasks.findAll { task ->
+		task.name.contains 'f'
+	}
+}
+
+task third(dependsOn: 'second', group: taskGroup) << { taskObject ->
+	println 'Running ' + taskObject.name
+}
+
+task numbers << {
+	(1..4).each { number ->
+		def squared = number * number
+		println "Square of ${number} = ${squared}"
+	}
+}
+
+task list {
+	doFirst {
+		def list = ['Groovy', 'Gradle']
+		println list.collect {
+			it.toLowerCase()
+		}.join(' & ')
+	}
+}
+
+def deploymentGroup = 'deployment'
+
+['Dev', 'Acc', 'Prod'].each { env -> 
+	task "deployTo${env}"(description: "Deploy to ${env} environment", group: deploymentGroup) << { task ->
+		println "Deploying to ${env}"
+	}
+}
+
+tasks.addRule("Pattern: desc-<TaskName>: show description of a task") { taskName ->
+	if (taskName.startsWith('desc-')) {
+		def targetTaskName = taskName - 'desc-'
+		def targetTaskNameUncapitalize = targetTaskName[0].toLowerCase() + targetTaskName[1..-1]
+		def targetTask = project.tasks.findByName(targetTaskNameUncapitalize)
+		if (targetTask) {
+			task(taskName) << {
+				println "Description of task ${targetTask.name} -> ${targetTask.description}"
+			}
+		}
+	}
+}
